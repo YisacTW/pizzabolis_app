@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Pizza Bolis Delivery Distance Calculator</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAyKdn3-PtAIaqpOiowekVvaARC9yH8nbY&libraries=places"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<style>
+  body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #ffffff;
+  }
+
+  h1 {
+      color: #c41230;
+      font-size: 2.5em;
+      font-weight: 700;
+  }
+
+  form {
+      margin-top: 20px;
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 5px;
+  }
+
+  input[type="text"] {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ced4da;
+  }
+
+  button {
+      background-color: #c41230;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 20px;
+      border-radius: 5px;
+      font-weight: 500;
+  }
+
+  button:hover {
+      background-color: #9c0e24;
+  }
+
+  #assignments {
+      margin-top: 20px;
+  }
+
+  #assignments > div {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+  }
+
+  #assignments > div:nth-child(even) {
+      background-color: #f8f9fa;
+  }
+
+  #assignments > div:nth-child(odd) {
+      background-color: #ffffff;
+  }
+
+  #assignments > div.green {
+      border: 2px solid #28a745;
+  }
+
+  #assignments > div.yellow {
+      border: 2px solid #ffc107;
+  }
+
+  #assignments > div.red {
+      border: 2px solid #dc3545;
+  }
+</style>
+</head>
+  <body>
+    <h1>Pizza Bolis Delivery Distance Calculator</h1>
+    <form method="post" action="/assign" id="assign-form" novalidate>
+        <h2>Orders</h2>
+        <div id="orders">
+          <input type="text" name="orders[]" placeholder="Order address" required>
+        </div>
+        <button type="button" onclick="addOrder()">Add order</button>
+        
+        <h2>Drivers</h2>
+        <div id="drivers">
+          <input type="text" name="drivers[]" placeholder="Driver name" required>
+        </div>
+        <button type="button" onclick="addDriver()">Add driver</button>
+        
+        <button type="submit">Assign orders</button>
+      </form>
+      <div id="assignments"></div>
+    {% if distance %}
+    <p>The delivery distance is: {{ distance }}</p>
+    {% endif %}
+    <script>
+        function addOrder() {
+          const orders = document.getElementById('orders');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = 'orders[]';
+          input.placeholder = 'Order address';
+          input.required = true;
+          orders.appendChild(input);
+          initializeAutocomplete(input);
+        }
+      
+        function addDriver() {
+          const drivers = document.getElementById('drivers');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = 'drivers[]';
+          input.placeholder = 'Driver name';
+          input.required = true;
+          drivers.appendChild(input);
+        }
+      
+        document.getElementById('assign-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const orders = Array.from(document.querySelectorAll('input[name="orders[]"]')).map(input => input.value);
+  const drivers = Array.from(document.querySelectorAll('input[name="drivers[]"]')).map(input => input.value);
+
+  const requestData = {
+    orders: orders,
+    drivers: drivers
+  };
+
+  const response = await fetch('/assign', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestData),
+  });
+
+  const assignments = await response.json();
+
+  const assignmentsContainer = document.getElementById('assignments');
+  assignmentsContainer.innerHTML = '';
+
+  for (const assignment of assignments) {
+    const div = document.createElement('div');
+    div.textContent = `${assignment.driver} -> ${assignment.order} (${assignment.distance}, order received at: ${assignment.order_received_time}, predicted delivery time: ${assignment.predicted_delivery_time} minutes, time remaining: ${assignment.time_remaining} minutes)`;
+    div.style.color = assignment.delivery_lateness;  // set color
+    assignmentsContainer.appendChild(div);
+}
+
+});
+
+        function initializeAutocomplete(input) {
+  const autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'us' },
+    fields: ['address_components', 'geometry'],
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const orderInputs = document.querySelectorAll('input[name="orders[]"]');
+  orderInputs.forEach((input) => {
+    initializeAutocomplete(input);
+  });
+});
+
+function addOrder() {
+  const orders = document.getElementById('orders');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.name = 'orders[]';
+  input.placeholder = 'Order address';
+  input.required = true;
+  orders.appendChild(input);
+
+  initializeAutocomplete(input);
+}
+
+      </script>
+  </body>
+</html>
